@@ -16,7 +16,7 @@ int main(int argc, char *argv[], char *envp[])
 
 	while (1)
 	{
-		printf("(Gx Shell)$ ");
+		printf("($) ");
 		fflush(stdout);
 
 		chars = getline(&buffer, &bufsize, stdin);
