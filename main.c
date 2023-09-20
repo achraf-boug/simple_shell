@@ -14,8 +14,6 @@ int main(int argc, char *argv[], char *envp[])
 	size_t bufsize = 0;
 	ssize_t chars;
 
-	argv[0] = "hsh";
-	envp[0] = "envp";
 	while (1)
 	{
 		printf("(Gx Shell)$ ");
@@ -29,6 +27,15 @@ int main(int argc, char *argv[], char *envp[])
 			printf("Error reading input!\n");
 			exit(EXIT_FAILURE);
 		}
+
+		if (access(buffer, X_OK) == 0)
+		{
+			argv[0] = buffer;
+			if (execve(buffer, argv, envp) == -1)
+				perror("./hsh");
+		}
+		else
+			printf("./hsh: No such file or directory\n");
 	}
 
 	free(buffer);
