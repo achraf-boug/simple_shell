@@ -1,85 +1,43 @@
 #include "shell.h"
 
 /**
- * executeCMD - execute the commands
- * @command: command to execute
- * @argv: list of arguments
- * @envp: env params
+ * main - entry point
+ * @argc: arg count
+ * @argv: arg vector
  *
- * Return: void
+ * Return: 0 on success, 1 on error
  */
-void executeCMD(char *command, char *argv[], char *envp[])
+int main(int argc, char **argv)
 {
-		pid_t pid;
-		int status;
-		/*Fork a child process*/
-		pid = fork();
+	std_infos info[] = { INFO_INIT };
+	int fd = 2;
 
-		if (pid == -1)
-			perror("Error fork");
-		else if (pid == 0)
-		{
-			/*Child process*/
-			if (access(command, X_OK) == 0)
-			{
-				if (execve(command, argv, envp) == -1)
-				{
-					perror(command);
-					_exit(EXIT_FAILURE);
-				}
-			}
-			else
-			{
-				printf("%s: No such file or directory\n", command);
-				_exit(EXIT_FAILURE);
-			}
-		}
-		else
-		{
-			/*Parent process*/
-			if (waitpid(pid, &status, 0) == -1)
-				perror("waitpid");
-		}
-}
+	asm ("mov %1, %0\n\t"
+		"add $3, %0"
+		: "=r" (fd)
+		: "r" (fd));
 
-/**
- * main - run shell
- * @argc: number of arguments
- * @argv: list of arguments
- * @envp: env params
- *
- * Return: argc
- */
-int main(int argc, char *argv[], char *envp[])
-{
-	char *buffer = NULL;
-	size_t bufsize = 0;
-	ssize_t chars;
-
-	while (1)
+	if (argc == 2)
 	{
-		printf("($) ");
-		fflush(stdout);
-
-		chars = getline(&buffer, &bufsize, stdin);
-		if (chars == -1)
+		fd = open(argv[1], O_RDONLY);
+		if (fd == -1)
 		{
-			/*Handle the "end of file" condition*/
-			printf("\n");
-			break;
+			if (errno == EACCES)
+				exit(126);
+			if (errno == ENOENT)
+			{
+				put_err(argv[0]);
+				put_err(": 0: Can't open ");
+				put_err(argv[1]);
+				putchar_err('\n');
+				putchar_err(BUFFLUSH);
+				exit(127);
+			}
+			return (EXIT_FAILURE);
 		}
-
-		/*Remove '\n'*/
-		if (chars > 0 && buffer[chars - 1] == '\n')
-			buffer[chars - 1] = '\0';
-		else
-		{
-			printf("Error reading input!\n");
-			exit(EXIT_FAILURE);
-		}
-		executeCMD(buffer, argv, envp);
+		info->readfd = fd;
 	}
-
-	free(buffer);
-	return (argc);
+	initEnvParams(info);
+	runShell(info, argv);
+	return (EXIT_SUCCESS);
 }
